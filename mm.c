@@ -29,30 +29,30 @@
  *       Format!
  *
  * === User information ===
- * Group: 
- * User 1: 
- * SSN: X
- * User 2: 
- * SSN: X
- * User 3: 
- * SSN: X
+ * Group: SWEDENBOYZ
+ * User 1: bjartur14
+ * SSN: 1012952499
+ * User 2: emilg12
+ * SSN: 1910903069
+ * User 3: eythorst14
+ * SSN: 0109943229
  * === End User Information ===
  ********************************************************/
 team_t team = {
     /* Group name */
-    "STY16_Forever",
+    "SWEDENBOYZ",
     /* First member's full name */
-    "Freysteinn Alfredsson",
+    "Bjartur Hafþórsson",
     /* First member's email address */
-    "freysteinn@ru.is",
+    "bjartur14@ru.is",
     /* Second member's full name (leave blank if none) */
-    "",
+    "Emil Gunnar Gunnarsson",
     /* Second member's email address (leave blank if none) */
-    "",
+    "emilg12@ru.is",
     /* Third full name (leave blank if none) */
-    "",
+    "Eyþór Snær Tryggvason",
     /* Third member's email address (leave blank if none) */
-    ""
+    "eythorst14@ru.is"
 };
 
 /* single word (4) or double word (8) alignment */
