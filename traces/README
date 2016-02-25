@@ -1,0 +1,7 @@
+In the four trace files we are checkin for the 4 cases mentioned in lecture. 
+Trace1: free allocated block with allocated blocks on both sides of that block.
+Trace2: free allocated block with allocated block in front and free block behind.
+Trace3: free allocated block with free block in front and allocated block behind.
+Trace4: free allocated block with free blocks on both sides of that block.
+
+We use 8 byte blocks because we are on x86 system as the instruction asks for. 
