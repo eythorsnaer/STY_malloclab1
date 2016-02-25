@@ -215,34 +215,23 @@ void *mm_realloc(void *ptr, size_t size)
 }
 
 /* 
- * mm_checkheap - Check the heap for consistency 
+ * mm_check - Check the heap for consistency 
  */
-void mm_checkheap(int verbose) 
+int mm_check(void) 
 {
-    char *bp = heap_listp;
+  char *bp;
 
-    if (verbose) {
-        printf("Heap (%p):\n", heap_listp);
-    }
+  char* high = mem_heap_hi();
+  char*  low = mem_heap_lo();
 
-    if ((GET_SIZE(HDRP(heap_listp)) != DSIZE) || !GET_ALLOC(HDRP(heap_listp))) {
-        printf("Bad prologue header\n");
+  for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+    if(bp > high || bp < low) {
+      printf("Error: pointer not in heap\n");
+      return 0;
     }
-    checkblock(heap_listp);
+  }
 
-    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-        if (verbose) {
-            printblock(bp);
-    }
-        checkblock(bp);
-    }
-     
-    if (verbose) {
-        printblock(bp);
-    }
-    if ((GET_SIZE(HDRP(bp)) != 0) || !(GET_ALLOC(HDRP(bp)))) {
-        printf("Bad epilogue header\n");
-    }
+  return 1;
 }
 
 /* The remaining routines are internal helper routines */
