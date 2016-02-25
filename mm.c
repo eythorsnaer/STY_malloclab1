@@ -1,10 +1,30 @@
 /*
  * mm-naive.c - The fastest, least memory-efficient malloc package.
  * 
- * In this naive approach, a block is allocated by simply incrementing
- * the brk pointer.  A block is pure payload. There are no headers or
- * footers.  Blocks are never coalesced or reused. Realloc is
- * implemented directly using mm_malloc and mm_free.
+ *  In our approach, a block is allocated by checking the heap for 
+ *  the next available free block in an explicit list. An 
+ *  allocated block consists of a header and a footer that store it's size,
+ *  and the payload. A free block consists of a header and a footer that
+ *  that store it's size, and it then uses part of it's payload to
+ *  keep track of the next and previous free blocks.
+ *  When a block is freed we check whether the block before it is also 
+ *  a free block, if it is we coalesce, and the same goes for the block after it.
+ *  We then set it as the "next block to check" which a "next pointer" in our
+ *  next fit implementation keeps track of. We then set the new block's next pointer to 
+ *  the old value of the "next pointer" and it's prev pointer to the location of the previous
+ *  block we checked, which is stored in the prev pointer of the old "next pointer" block.
+ *  The value of that block's next pointer is changed to the location of the new block and
+ *  the value of our old "next pointer"'s prev pointer is set to the location our new block as well.
+ *  Realloc simply frees the block and then allocates it the next available block of the 
+ *  appropriate size: I.e. it calls mm_malloc and then it calls mm_free.
+ *
+ *  An example of an allocated block:
+ * 
+ * |BLK size | payload | BLK size|
+ *
+ *  An example of a free block:
+ *
+ * |BLK size | pointer to next | pointer to prev | payload | BLK size|
  *
  * NOTE TO STUDENTS: Replace this header comment with your own header
  * comment that gives a high level description of your solution.
