@@ -1,21 +1,20 @@
 /*
  * mm.c -  explicit list .
  * 
- *  In our approach, a block is allocated by checking the heap for 
- *  the next available free block in an explicit list. An 
+ *  In our approach, a block is allocated by checking the heap for
+ *  the first available free block in an explicit list. An
  *  allocated block consists of a header and a footer that store it's size,
  *  and the payload. A free block consists of a header and a footer that
  *  that store it's size, and it then uses part of it's payload to
  *  keep track of the next and previous free blocks.
- *  When a block is freed we check whether the block before it is also 
+ *  When a block is freed we check whether the block before it is also
  *  a free block, if it is we coalesce, and the same goes for the block after it.
- *  We then set it as the "next block to check" which a "next pointer" in our
- *  next fit implementation keeps track of. We then set the new block's next pointer to 
- *  the old value of the "next pointer" and it's prev pointer to the location of the previous
- *  block we checked, which is stored in the prev pointer of the old "next pointer" block.
- *  The value of that block's next pointer is changed to the location of the new block and
- *  the value of our old "next pointer"'s prev pointer is set to the location our new block as well.
- *  Realloc simply frees the block and then allocates it the next available block of the 
+ *  We then set the new block's next pointer to
+ *  the value of the next block in the list and it's prev pointer to the location of the previous
+ *  block in the list.
+ *  The value of the next block's previous pointer is changed to the location of the new block and
+ *  the value of the previous block's prev pointer is set to the location our new block as well.
+ *  Realloc simply frees the block and then allocates it the next available block of the
  *  appropriate size: I.e. it calls mm_malloc and then it calls mm_free.
  *
  *  An example of an allocated block:
