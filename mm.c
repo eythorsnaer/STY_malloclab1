@@ -143,11 +143,13 @@ int mm_init(void)
     PUT(heap_listp + DSIZE, 0); //prev free block pointer
     PUT(heap_listp + DSIZE+WSIZE, 0); //next free block pointer
 
-    PUT(heap_listp+DSIZE, PACK(OVERHEAD, 1));  /* prologue footer */
+    PUT(heap_listp+OVERHEAD, PACK(OVERHEAD, 1));  /* prologue footer */
 
-    PUT(heap_listp+WSIZE+DSIZE, PACK(0, 1));   /* epilogue header */
+    PUT(heap_listp+WSIZE+OVERHEAD, PACK(0, 1));   /* epilogue header */
 
-    heap_listp += DSIZE;
+    //heap_listp += DSIZE+WSIZE;
+
+    free_listp = heap_listp + DSIZE; 
 
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL) {
@@ -336,14 +338,14 @@ static void *find_fit(size_t asize)
  */
   static void *coalesce(void *bp) 
   {
-    size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
+    size_t prev_alloc = GET_ALLOC(HDRP(PREV_BLKP(bp))) || PREV_BLKP(bp) == bp;
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
     size_t size = GET_SIZE(HDRP(bp));
 
-    if (prev_alloc && next_alloc) {            /* Case 1 */
-	return bp;
-    }
-    else if (prev_alloc && !next_alloc) {      /* Case 2 */
+    //if (prev_alloc && next_alloc) {            /* Case 1 */
+    //	return bp;
+    //}
+    if (prev_alloc && !next_alloc) {      /* Case 2 */
 	size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
 	removeblock(NEXT_BLKP(bp));
 	PUT(HDRP(bp), PACK(size, 0));
@@ -351,10 +353,10 @@ static void *find_fit(size_t asize)
     }
     else if (!prev_alloc && next_alloc) {      /* Case 3 */
 	size += GET_SIZE(HDRP(PREV_BLKP(bp)));
-	PUT(FTRP(bp), PACK(size, 0));
-	PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
 	bp = PREV_BLKP(bp);
 	removeblock(bp);
+	PUT(FTRP(bp), PACK(size, 0));
+	PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
     }
     else {                                     /* Case 4 */
 	size += GET_SIZE(HDRP(PREV_BLKP(bp))) + 
@@ -424,16 +426,18 @@ static void *find_fit(size_t asize)
     // as the first block, else set next pointer to previous
     // next block.
 
-    if (!PREV_FREEP(bp))
+    if (PREV_FREEP(bp))
     {
-      free_listp = NEXT_FREEP(bp);
+	NEXT_FREEP(PREV_FREEP(bp)) = NEXT_FREEP(bp);
     }
     else
     {
-      NEXT_FREEP(PREV_FREEP(bp)) = NEXT_FREEP(bp);
+	free_listp = NEXT_FREEP(bp);
     }
 
     PREV_FREEP(NEXT_FREEP(bp)) = PREV_FREEP(bp);
+    
+   
   }
  
 /*
@@ -446,7 +450,10 @@ static void *find_fit(size_t asize)
   static void insertblock(void *bp)
   {
     NEXT_FREEP(bp) = free_listp;
+    if (PREV_FREEP(free_listp) == 0) 
+	return;
+
     PREV_FREEP(free_listp) = bp;
-    PREV_FREEP(bp) = 0;
+    PREV_FREEP(bp) = NULL;
     free_listp = bp;
   }
