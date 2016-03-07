@@ -87,7 +87,7 @@ team_t team = {
 #define DSIZE       8       /* doubleword size (bytes) */
 #define CHUNKSIZE  (1<<12)  /* initial heap size (bytes) */
 #define OVERHEAD    8       /* overhead of header and footer(bytes) */
-#define MIN_BSIZE   16      /* minimum size of block */
+#define MIN_BSIZE   24      /* minimum size of block */
 
 #define MAX(x, y) ((x) > (y)? (x) : (y))  
 
@@ -155,21 +155,21 @@ int mm_init(void)
 
     PUT(heap_listp + WSIZE, PACK(MIN_BSIZE, 1));    /* prologue header */
     PUT(heap_listp + DSIZE, 0); //prev free block pointer
-    PUT(heap_listp + DSIZE + WSIZE, 0); //next free block pointer
-    PUT(heap_listp + 2*DSIZE, PACK(MIN_BSIZE, 1));    /* prologue footer */
+    PUT(heap_listp + DSIZE*2, 0); //next free block pointer
+    PUT(heap_listp + DSIZE*3, PACK(MIN_BSIZE, 1));    /* prologue footer */
     
     PUT(heap_listp + WSIZE + MIN_BSIZE, PACK(0, 1));   /* epilogue header */
 
-    heap_listp += DSIZE;    //points to prologue footer
+    heap_listp += DSIZE;    //points behind prologue hdr
     free_listp = heap_listp; // points to epilogue
     
     //print  prologue and epilogue
-    /*
+    /*    
     heap_listp += WSIZE;
     printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
        (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
-          GET_SIZE(heap_listp+DSIZE+WSIZE),
-	     (GET_ALLOC(heap_listp+DSIZE+WSIZE) ? 'a' : 'f'));
+       GET_SIZE(heap_listp+DSIZE*2+WSIZE),
+       (GET_ALLOC(heap_listp+DSIZE*2+WSIZE) ? 'a' : 'f'));
     heap_listp += MIN_BSIZE;
     printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
        (GET_ALLOC(heap_listp) ? 'a' : 'f'));
@@ -262,7 +262,6 @@ void *mm_realloc(void *ptr, size_t size)
    int firstLoop = 1;
 
    // Check if every block in free list is marked free
-
    printf("Check if every block in free list is marked free \n");
    while(GET_SIZE(HDRP(ptr)) != 0)
    {
@@ -271,6 +270,10 @@ void *mm_realloc(void *ptr, size_t size)
 	 if (ptr != heap_listp) {
 	     printf("ERROR: allocated block in freelist!\n");
 	     return -1;
+	 }
+	 //check if list is empty
+	 else if (NEXT_FREEP(ptr) == NULL) {
+	     break;
 	 }
      }
 
@@ -460,7 +463,7 @@ static void *find_fit(size_t asize)
   /* first fit search */
   void *bp;
 
-  for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_FREEP(bp)) {
+  for (bp = free_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_FREEP(bp)) {
     if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) {
       return bp;
     }
