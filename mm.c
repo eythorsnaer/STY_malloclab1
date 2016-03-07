@@ -301,7 +301,7 @@ void *mm_realloc(void *ptr, size_t size)
    // Check if there are any free blocks side by side
 
    printf("Check if there are any free blocks side by side \n");
-   while(ptr != 0)
+   while(GET_SIZE(HDRP(ptr)) != 0)
    {
      if (GET_ALLOC(HDRP(ptr)) == 0)
      {
@@ -327,7 +327,7 @@ void *mm_realloc(void *ptr, size_t size)
 
    while(ptr != 0)
    {
-     while(ptr2 != 0)
+     while(GET_SIZE(HDRP(ptr2)) != 0)
      {
 	 if (GET_ALLOC(HDRP(ptr2)) == 0)
        {
