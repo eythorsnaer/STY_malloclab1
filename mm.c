@@ -70,7 +70,7 @@ team_t team = {
   /* Third full name (leave blank if none) */
   "Eyþór Snær Tryggvason",
   /* Third member's email address (leave blank if none) */
-    "eythorst14@ru.is"
+  "eythorst14@ru.is"
 };
 
 /* single word (4) or double word (8) alignment */
@@ -98,7 +98,7 @@ team_t team = {
 #define GET(p)         (*(size_t *)(p))
 #define PUT(p, val)    (*(size_t *)(p) = (val))  
 
-/* (which is about 49/100).* Read the size and allocated fields from address p */
+/* Read the size and allocated fields from address p */
 #define GET_SIZE(p)    (GET(p) & ~0x7)
 #define GET_ALLOC(p)   (GET(p) & 0x1)
 
@@ -129,17 +129,6 @@ static void removeblock(void *bp);
 static void insertblock(void *bp);
 static int mm_check();
 
-// just a small test, not the main heap checker :P
-void myheapcheck()
-{
-    char *bp;
-
-    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-	printblock(bp);
-	checkblock(bp);
-    } 
-}
-
 /* 
  * mm_init - Initialize the memory manager 
  */
@@ -163,9 +152,23 @@ int mm_init(void)
     NEXT_FREEP(heap_listp) = heap_listp + MIN_BSIZE;
     
     printf("prev free block: %p\n", PREV_FREEP(heap_listp));
-    printf("prev free block: %p\n", PREV_FREEP(heap_listp+DSIZE));
+    printf("next free block: %p\n", NEXT_FREEP(heap_listp));
 
-    printf("Check in init \n");
+    printf("heap lo: %p\n", mem_heap_lo);
+    printf("heap hi: %p\n", mem_heap_hi);
+
+    //print  prologue and epilogue
+    /*    
+    heap_listp += WSIZE;
+    printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
+       (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
+       GET_SIZE(heap_listp+DSIZE*2+WSIZE),
+       (GET_ALLOC(heap_listp+DSIZE*2+WSIZE) ? 'a' : 'f'));
+    heap_listp += MIN_BSIZE;
+    printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
+       (GET_ALLOC(heap_listp) ? 'a' : 'f'));
+    */
+    printf("Check after init \n");
     mm_check();
     //exit(0);                                                                         
 
@@ -187,9 +190,6 @@ void *mm_malloc(size_t size)
   size_t extendsize; /* amount to extend heap if no fit */
   char *bp;
 
-  printf("Check in malloc \n");
-  mm_check();
-
   /* Ignore spurious requests */
   if (size <= 0) {
     return NULL;
@@ -208,6 +208,10 @@ void *mm_malloc(size_t size)
   /* Search the free list for a fit */
   if ((bp = find_fit(asize)) != NULL) {
     place(bp, asize);
+
+    printf("Check after malloc \n");
+    mm_check();
+
     return bp;
   }
 
@@ -217,6 +221,10 @@ void *mm_malloc(size_t size)
     return NULL;
   }
   place(bp, asize);
+
+  printf("Check after malloc \n");
+  mm_check();
+
   return bp;
 
 } 
@@ -228,7 +236,16 @@ void *mm_malloc(size_t size)
 /* $begin mmfree */
 void mm_free(void *bp)
 {
-  
+  size_t size = GET_SIZE(HDRP(bp));
+
+  PUT(HDRP(bp), PACK(size, 0));
+  PUT(FTRP(bp), PACK(size, 0));
+  coalesce(bp);
+
+  printf("Check after free \n");
+  mm_check();
+
+  //Insert block if coalesce doesn't?
 }
 
 
@@ -298,9 +315,9 @@ void *mm_realloc(void *ptr, size_t size)
 
    while(GET_SIZE(HDRP(ptr)) != 0)
    {
-     while(GET_SIZE(HDRP(ptr2)) != 0)
+       while(GET_SIZE(HDRP(ptr2)) != 0)
      {
-       if (GET_ALLOC(HDRP(ptr2)) == 0)
+	 if (GET_ALLOC(HDRP(ptr2)) == 0)
        {
 	 if (ptr != ptr2)
 	 {
@@ -402,6 +419,9 @@ void *mm_realloc(void *ptr, size_t size)
      /* Coalesce if the previous block was free and add the block to 
       * the free list */
      
+     printf("Check after extend_heap \n");
+     mm_check();
+
      return bp;
  }
 /* $end mmextendheap */
@@ -416,16 +436,13 @@ static void place(void *bp, size_t asize)
 /* $end mmplace-proto */
 {
   size_t csize = GET_SIZE(HDRP(bp));
-  
-  printf("Check in place \n");
-  mm_check();
+
   printblock(bp);
   if ((csize - asize) >= (DSIZE + OVERHEAD)) {
     PUT(HDRP(bp), PACK(asize, 1));
     PUT(FTRP(bp), PACK(asize, 1));
     bp = NEXT_BLKP(bp);
 
-    mm_check();
     PUT(HDRP(bp), PACK(csize-asize, 0));
     PUT(FTRP(bp), PACK(csize-asize, 0));
     insertblock(bp);
@@ -433,6 +450,10 @@ static void place(void *bp, size_t asize)
   else {
     PUT(HDRP(bp), PACK(csize, 1));
     PUT(FTRP(bp), PACK(csize, 1));
+    
+    printf("Check after place \n");
+    mm_check();
+
     // Remove block from freelist??
   }
 
@@ -444,17 +465,20 @@ static void place(void *bp, size_t asize)
  */
 static void *find_fit(size_t asize)
 {
-  printf("Check in find_fit \n");
-  mm_check();
-
   /* first fit search */
   void *bp;
 
   for (bp = free_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_FREEP(bp)) {
     if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) {
+      printf("Check after find_fit \n");
+      mm_check();
       return bp;
     }
   }
+
+  printf("Check after find_fit \n");
+  mm_check();
+
   return NULL; /* no fit */
 
 }
@@ -473,29 +497,29 @@ static void *coalesce(void *bp)
     }
     else if (prev_alloc && !next_alloc) {      /* Case 2 */
 	size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
-	remove(NEXT_BLKP(bp));
+	removeblock(NEXT_BLKP(bp));
 	PUT(HDRP(bp), PACK(size, 0));
 	PUT(FTRP(bp), PACK(size,0));
     }
     else if (!prev_alloc && next_alloc) {      /* Case 3 */
 	size += GET_SIZE(HDRP(PREV_BLKP(bp)));
 	bp = PREV_BLKP(bp);
-	remove(bp);
+	removeblock(bp);
 	PUT(FTRP(bp), PACK(size, 0));
 	PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
     }
     else {                                     /* Case 4 */
 	size += GET_SIZE(HDRP(PREV_BLKP(bp))) + 
 	    GET_SIZE(FTRP(NEXT_BLKP(bp)));
-	remove(PREV_BLKP(bp));
-	remove(NEXT_BLKP(bp));
+	removeblock(PREV_BLKP(bp));
+	removeblock(NEXT_BLKP(bp));
 	bp = PREV_BLKP(bp);
 	PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
 	PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
     
     }
 
-    insert(bp);
+    insertblock(bp);
 
     return bp;
 }
@@ -503,9 +527,6 @@ static void *coalesce(void *bp)
  static void printblock(void *bp) 
   {
     size_t hsize, halloc, fsize, falloc;
-
-    printf("Check in printblock \n");
-    mm_check();
 
     hsize = GET_SIZE(HDRP(bp));
     halloc = GET_ALLOC(HDRP(bp));
@@ -531,8 +552,8 @@ static void *coalesce(void *bp)
 	       PREV_FREEP(bp),
 	       fsize, (falloc ? 'a' : 'f'));
       }
- 
-
+      printf("Check after printblock \n");
+      mm_check();
   }
 
 static void checkblock(void *bp) 
@@ -550,10 +571,14 @@ static void checkblock(void *bp)
     }
 
   // is every block within boundries?
-  if(bp < mem_heap_lo() || bp > mem_heap_hi())
+  if(bp < mem_heap_lo())
     {
-      printf("CHECKBLOCK ERROR: NEXT_FREEP(bp) is not on heap! \n");
+      printf("CHECKBLOCK ERROR: bp is smaller then mem_heap_lo! \n");
     }
+  if(bp > mem_heap_hi())
+  {
+      printf("CHECKBLOCK ERROR: bp is larger is not on mem_heap_hi! \n");
+  }
 
   // do the pointers point to vlaid addresses?
   if(NEXT_FREEP(bp) < mem_heap_lo() || NEXT_FREEP(bp) > mem_heap_hi())
@@ -580,7 +605,17 @@ static void checkblock(void *bp)
 
   static void removeblock(void *bp)
   {
-   
+    if(PREV_FREEP(bp)) {
+      /*block is between blocks*/
+      NEXT_FREEP(PREV_FREEP(bp)) = NEXT_FREEP(bp);
+    } else {
+      /*block is first in free list*/
+      free_listp = NEXT_FREEP(bp);
+    }
+    PREV_FREEP(NEXT_FREEP(bp)) = PREV_FREEP(bp);
+
+    printf("Check after removeblock \n");
+    mm_check();
   }
  
 /*
@@ -597,6 +632,6 @@ static void checkblock(void *bp)
     PREV_FREEP(bp) = 0;
     free_listp = bp;
 
-    printf("Check in insertblock \n");
+    printf("Check after insertblock \n");
     mm_check();
   }
