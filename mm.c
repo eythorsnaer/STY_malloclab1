@@ -86,7 +86,7 @@ team_t team = {
 #define WSIZE       4       /* word size (bytes) */  
 #define DSIZE       8       /* doubleword size (bytes) */
 #define CHUNKSIZE  (1<<12)  /* initial heap size (bytes) */
-#define OVERHEAD    24       /* overhead of header, footer, next and prev pointers(bytes) */
+#define OVERHEAD    24      /* overhead of header, footer, next and prev pointers(bytes) */
 
 #define MAX(x, y) ((x) > (y)? (x) : (y))  
 
@@ -114,7 +114,8 @@ team_t team = {
 #define PREV_FREEP(bp)(*(void **)(bp))
 
 /* Global variables */
-static char *heap_listp;  /* pointer to first block */  
+static char *heap_listp;  /* pointer to heap */  
+static char *free_listp;  /* pointer to free list */
 
 /* function prototypes for internal helper routines */
 static void *extend_heap(size_t words);
@@ -159,8 +160,10 @@ int mm_init(void)
 
     PUT(heap_listp+WSIZE+DSIZE, PACK(0, 1));   /* epilogue header */
 
-    heap_listp += DSIZE + WSIZE;
-    printf("before extend\n");
+    heap_listp += DSIZE;
+    free_listp = heap_listp + WSIZE;
+
+    printf("Check in init \n");
     mm_check();
     //exit(0);
   
@@ -189,7 +192,42 @@ int mm_init(void)
 /* $begin mmmalloc */
 void *mm_malloc(size_t size) 
 {
-  return NULL;
+  size_t asize;      /* adjusted block size */
+  size_t extendsize; /* amount to extend heap if no fit */
+  char *bp;
+
+  printf("Check in malloc \n");
+  mm_check();
+
+  /* Ignore spurious requests */
+  if (size <= 0) {
+    return NULL;
+  }
+
+  /* Adjust block size to include overhead and alignment reqs. */
+  if (size <= DSIZE) {
+    asize = DSIZE + OVERHEAD;
+  }
+  else {
+    asize = DSIZE * ((size + (OVERHEAD) + (DSIZE-1)) / DSIZE);
+  }
+
+  printf("%zu\n", asize);
+
+  /* Search the free list for a fit */
+  if ((bp = find_fit(asize)) != NULL) {
+    place(bp, asize);
+    return bp;
+  }
+
+  /* No fit found. Get more memory and place the block */
+  extendsize = MAX(asize,CHUNKSIZE);
+  if ((bp = extend_heap(extendsize/WSIZE)) == NULL) {
+    return NULL;
+  }
+  place(bp, asize);
+  return bp;
+
 } 
 /* $end mmmalloc */
 
@@ -218,33 +256,33 @@ void *mm_realloc(void *ptr, size_t size)
  */
  int mm_check(void) 
  {
-   void *ptr = heap_listp;
-   void *ptr2 = heap_listp;
+   void *ptr = free_listp;
+   void *ptr2 = free_listp;
    int lastWasFree = 0;
    int firstLoop = 1;
 
    // Check if every block in free list is marked free
-   while(GET_SIZE(ptr) != 0)
+   while(GET_SIZE(HDRP(ptr)) != 0)
    {
-     if (GET_ALLOC(ptr) == 1)
+     if (GET_ALLOC(HDRP(ptr)) == 1)
      {
-       printf("ERROR: allocated block in freelist!");
+       printf("ERROR: allocated block in freelist!\n");
        return -1;
      }
 
      ptr = NEXT_FREEP(ptr);
    }
    
-   ptr = heap_listp;
+   ptr = free_listp;
 
    // Check if there are any free blocks side by side
-   while(GET_SIZE(ptr) != 0)
+   while(GET_SIZE(HDRP(ptr)) != 0)
    {
-     if (GET_ALLOC(ptr) == 0)
+     if (GET_ALLOC(HDRP(ptr)) == 0)
      {
        if (lastWasFree)
 	 {
-	   printf("ERROR: Two free blcoks side by side!");
+	   printf("ERROR: Two free blcoks side by side!\n");
 	   return -1;
 	 }
        lastWasFree = 1;
@@ -257,20 +295,20 @@ void *mm_realloc(void *ptr, size_t size)
      ptr = NEXT_BLKP(ptr);
    }
    
-   ptr = heap_listp;
+   ptr = free_listp;
 
    // Check if every free block is in the list
    
-   while(GET_SIZE(ptr) != 0)
+   while(GET_SIZE(HDRP(ptr)) != 0)
    {
-     while(GET_SIZE(ptr2) != 0)
+     while(GET_SIZE(HDRP(ptr2)) != 0)
      {
-       if (GET_ALLOC(ptr2) == 0)
+       if (GET_ALLOC(HDRP(ptr2)) == 0)
        {
 	 if (ptr != ptr2)
 	 {
-	   printf("ERROR: Found free block that is not in freelist!");
-	   return 1;
+	   printf("ERROR: Found free block that is not in freelist!\n");
+	   return -1;
 	 }
        }
        
@@ -280,34 +318,34 @@ void *mm_realloc(void *ptr, size_t size)
      ptr = NEXT_FREEP(ptr);
    }
 
-   ptr = heap_listp;
+   ptr = free_listp;
    ptr2 = NEXT_FREEP(ptr);
 
    // Check if pointers in consecutive blocks point to each other
    
-   while(GET_SIZE(ptr) != 0 && GET_SIZE(ptr2) != 0)
+   while(GET_SIZE(HDRP(ptr)) != 0 && GET_SIZE(HDRP(ptr2)) != 0)
    {
      if (NEXT_FREEP(ptr) != ptr2 || PREV_FREEP(ptr2) != ptr)
      {
-       printf("ERROR: Pointers in consecutive blocks don't point to each other!");
-       return 1;
+       printf("ERROR: Pointers in consecutive blocks don't point to each other!\n");
+       return -1;
      }
 
      ptr = NEXT_FREEP(ptr);
      ptr2 = NEXT_FREEP(ptr);
    }
      
-   ptr = heap_listp;
-   ptr2 = heap_listp;
+   ptr = free_listp;
+   ptr2 = free_listp;
 
    // Check if there are cycles in the list
 
-   while(GET_SIZE(ptr) != 0 && GET_SIZE(ptr2) != 0 && GET_SIZE(NEXT_FREEP(ptr2)) != 0)
+   while(GET_SIZE(HDRP(ptr)) != 0 && GET_SIZE(HDRP(ptr2)) != 0 && GET_SIZE(HDRP(NEXT_FREEP(ptr2))) != 0)
    {
      if (!firstLoop && ptr == ptr2)
      {
-       printf("ERROR: There is a cycle in the list!");
-       return 1;
+       printf("ERROR: There is a cycle in the list!\n");
+       return -1;
      }
        
      ptr = NEXT_FREEP(ptr);
@@ -319,11 +357,11 @@ void *mm_realloc(void *ptr, size_t size)
      }
    }
 
-   ptr = heap_listp;
+   ptr = free_listp;
 
    // Check each block for errors
 
-   while(GET_SIZE(ptr) != 0)
+   while(GET_SIZE(HDRP(ptr)) != 0)
    {
      checkblock(ptr);
 
@@ -347,7 +385,7 @@ void *mm_realloc(void *ptr, size_t size)
 
      /* Allocate an even number of words to maintain alignment */
      size = (words % 2) ? (words+1) * WSIZE : words * WSIZE;
-     //round up so we have sapce for header and footer
+     //round up so we have space for header and footer
      if (size < OVERHEAD)
 	 size = OVERHEAD;
      //extend heap 
@@ -358,9 +396,15 @@ void *mm_realloc(void *ptr, size_t size)
      PUT(HDRP(bp), PACK(size, 0));         /* free block header */
      PUT(FTRP(bp), PACK(size, 0));         /* free block footer */
      PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1)); /* new epilogue header */
+     
+     printf("Check in extend_heap \n");
+     mm_check();
 
+     insertblock(bp);
+     
      /* Coalesce if the previous block was free and add the block to 
       * the free list */
+     
      return bp;
  }
 /* $end mmextendheap */
@@ -374,7 +418,27 @@ void *mm_realloc(void *ptr, size_t size)
 static void place(void *bp, size_t asize)
 /* $end mmplace-proto */
 {
+  size_t csize = GET_SIZE(HDRP(bp));
   
+  printf("Check in place \n");
+  mm_check();
+  printblock(bp);
+  if ((csize - asize) >= (DSIZE + OVERHEAD)) {
+    PUT(HDRP(bp), PACK(asize, 1));
+    PUT(FTRP(bp), PACK(asize, 1));
+    bp = NEXT_BLKP(bp);
+
+    mm_check();
+    PUT(HDRP(bp), PACK(csize-asize, 0));
+    PUT(FTRP(bp), PACK(csize-asize, 0));
+    insertblock(bp);
+  }
+  else {
+    PUT(HDRP(bp), PACK(csize, 1));
+    PUT(FTRP(bp), PACK(csize, 1));
+    // Remove block from freelist??
+  }
+
 }
 /* $end mmplace */
 
@@ -383,7 +447,19 @@ static void place(void *bp, size_t asize)
  */
 static void *find_fit(size_t asize)
 {
-  return NULL;
+  printf("Check in find_fit \n");
+  mm_check();
+
+  /* first fit search */
+  void *bp;
+
+  for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_FREEP(bp)) {
+    if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) {
+      return bp;
+    }
+  }
+  return NULL; /* no fit */
+
 }
 
   /*
@@ -397,6 +473,9 @@ static void *find_fit(size_t asize)
   static void printblock(void *bp) 
   {
     size_t hsize, halloc, fsize, falloc;
+
+    printf("Check in printblock \n");
+    mm_check();
 
     hsize = GET_SIZE(HDRP(bp));
     halloc = GET_ALLOC(HDRP(bp));
@@ -483,5 +562,11 @@ static void checkblock(void *bp)
 
   static void insertblock(void *bp)
   {
-    
+    NEXT_FREEP(bp) = heap_listp;
+    PREV_FREEP(heap_listp) = bp;
+    PREV_FREEP(bp) = 0;
+    heap_listp = bp;
+
+    printf("Check in insertblock \n");
+    mm_check();
   }
