@@ -266,8 +266,10 @@ void *mm_realloc(void *ptr, size_t size)
    {
      if (GET_ALLOC(HDRP(ptr)) == 1)
      {
-       printf("ERROR: allocated block in freelist!\n");
-       return -1;
+	 if (ptr != heap_listp) {
+	     printf("ERROR: allocated block in freelist!\n");
+	     return -1;
+	 }
      }
 
      ptr = NEXT_FREEP(ptr);
