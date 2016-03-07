@@ -368,7 +368,7 @@ void *mm_realloc(void *ptr, size_t size)
    // Check if there are cycles in the list
   printf("Check if there are cycles in the list \n");
 
-   while(ptr != 0 && ptr2 != 0 && NEXT_FREEP(ptr2) != 0)
+   while(ptr != 0 && ptr2 != 0 && NEXT_FREEP(ptr2) != 0 && NEXT_FREEP(NEXT_FREEP(ptr2)) != 0)
    {
      if (!firstLoop && ptr == ptr2)
      {
