@@ -86,8 +86,9 @@ team_t team = {
 #define WSIZE       4       /* word size (bytes) */  
 #define DSIZE       8       /* doubleword size (bytes) */
 #define CHUNKSIZE  (1<<12)  /* initial heap size (bytes) */
-#define OVERHEAD    24       /* overhead of header, footer, next and prev pointers(bytes) */
-
+#define OVERHEAD    8       /* overhead of header, footer, next and prev pointers(bytes) */
+#define MIN_BSIZE   16 
+ 
 #define MAX(x, y) ((x) > (y)? (x) : (y))  
 
 /* Pack a size and allocated bit into a word */
@@ -115,6 +116,7 @@ team_t team = {
 
 /* Global variables */
 static char *heap_listp;  /* pointer to first block */  
+static char *free_listp;
 
 /* function prototypes for internal helper routines */
 static void *extend_heap(size_t words);
@@ -149,20 +151,24 @@ int mm_init(void)
 	return -1;
     }
     
-    PUT(heap_listp, 0);                        /* alignment padding */
+    PUT(heap_listp, 0);                            /* alignment padding */
+    PUT(heap_listp + WSIZE, PACK(OVERHEAD, 1));    /* prologue header */
+    PUT(heap_listp + DSIZE + WSIZE, PACK(OVERHEAD, 1));    /* prologue footer */
+    PUT(heap_listp + 2*DSIZE + WSIZE, PACK(0, 1));   /* epilogue header */
 
-    PUT(heap_listp+WSIZE, PACK(OVERHEAD, 1));  /* prologue header */
-    PUT(heap_listp + DSIZE, 0); //prev free block pointer
-    PUT(heap_listp + DSIZE+WSIZE, 0); //next free block pointer
+    //print  prologue and epilogue
+    heap_listp += WSIZE;
+    printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
+	   (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
+	   GET_SIZE(heap_listp+DSIZE),
+	   (GET_ALLOC(heap_listp+DSIZE) ? 'a' : 'f'));
+    heap_listp += 2*DSIZE;
+    printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
+	   (GET_ALLOC(heap_listp) ? 'a' : 'f'));
 
-    PUT(heap_listp+DSIZE, PACK(OVERHEAD, 1));  /* prologue footer */
-
-    PUT(heap_listp+WSIZE+DSIZE, PACK(0, 1));   /* epilogue header */
-
-    heap_listp += DSIZE + WSIZE;
     printf("before extend\n");
     mm_check();
-    //exit(0);
+    exit(0);
   
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL) {
