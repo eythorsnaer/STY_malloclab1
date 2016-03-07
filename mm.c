@@ -157,7 +157,7 @@ int mm_init(void)
     PUT(heap_listp + WSIZE + OVERHEAD, PACK(0, 1));   /* epilogue header */
 
     heap_listp += DSIZE;    //points to prologue footer
-    free_listp = heap_listp + DSIZE; // points to epilogue
+    free_listp = heap_listp; // points to epilogue
     
     //print  prologue and epilogue
     /*
@@ -172,7 +172,7 @@ int mm_init(void)
     */
     printf("Check in init \n");
     mm_check();
-    exit(0);
+    //exit(0);
   
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL) {
@@ -180,17 +180,6 @@ int mm_init(void)
     }
     return 0;
 }
-/* $end mminit */
-
-
-/* 
- * mm_init - Initialize the memory manager 
- */
-/* $begin mminit */
-//int mm_init(void) 
-//{
-//return 0;
-//}
 /* $end mminit */
 
 /* 
