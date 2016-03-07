@@ -136,7 +136,7 @@ static int mm_check();
 int mm_init(void)
 {
     /* create the initial empty heap */
-    if ((heap_listp = mem_sbrk(4*WSIZE)) == NULL) {
+    if ((heap_listp = mem_sbrk(8*WSIZE)) == NULL) {
         return -1;
     }
 
@@ -147,27 +147,8 @@ int mm_init(void)
     
     heap_listp += DSIZE;    //points behind prologue hdr                                    
     free_listp = heap_listp; // points to epilogue                                          
-    
-    PREV_FREEP(heap_listp) = NULL;
-    NEXT_FREEP(heap_listp) = heap_listp + MIN_BSIZE;
-    
-    printf("prev free block: %p\n", PREV_FREEP(heap_listp));
-    printf("next free block: %p\n", NEXT_FREEP(heap_listp));
-
-    printf("heap lo: %p\n", mem_heap_lo);
-    printf("heap hi: %p\n", mem_heap_hi);
-
-    //print  prologue and epilogue
-    /*    
-    heap_listp += WSIZE;
-    printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
-       (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
-       GET_SIZE(heap_listp+DSIZE*2+WSIZE),
-       (GET_ALLOC(heap_listp+DSIZE*2+WSIZE) ? 'a' : 'f'));
-    heap_listp += MIN_BSIZE;
-    printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
-       (GET_ALLOC(heap_listp) ? 'a' : 'f'));
-    */
+        
+    printf("prev free block: %p\n", heap_listp);
     printf("Check after init \n");
     mm_check();
     //exit(0);                                                                         
@@ -483,7 +464,7 @@ static void *find_fit(size_t asize)
 
 }
 
-  /*
+ /*
    * coalesce - boundary tag coalescing. Return ptr to coalesced block
  */
 static void *coalesce(void *bp) 
