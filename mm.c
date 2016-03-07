@@ -159,17 +159,6 @@ int mm_init(void)
     heap_listp += DSIZE;    //points to prologue footer
     free_listp = heap_listp; // points to epilogue
     
-    //print  prologue and epilogue
-    /*
-    heap_listp += WSIZE;
-    printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
-	   (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
-	   GET_SIZE(heap_listp+WSIZE),
-	   (GET_ALLOC(heap_listp+WSIZE) ? 'a' : 'f'));
-    heap_listp += DSIZE;
-    printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
-	   (GET_ALLOC(heap_listp) ? 'a' : 'f'));
-    */
     printf("Check in init \n");
     mm_check();
     //exit(0);
@@ -392,9 +381,6 @@ void *mm_realloc(void *ptr, size_t size)
      PUT(HDRP(bp), PACK(size, 0));         /* free block header */
      PUT(FTRP(bp), PACK(size, 0));         /* free block footer */
      PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1)); /* new epilogue header */
-     
-     printf("Check in extend_heap \n");
-     mm_check();
 
      insertblock(bp);
      
@@ -558,10 +544,10 @@ static void checkblock(void *bp)
 
   static void insertblock(void *bp)
   {
-    NEXT_FREEP(bp) = heap_listp;
-    PREV_FREEP(heap_listp) = bp;
+    NEXT_FREEP(bp) = free_listp;
+    PREV_FREEP(free_listp) = bp;
     PREV_FREEP(bp) = 0;
-    heap_listp = bp;
+    free_listp = bp;
 
     printf("Check in insertblock \n");
     mm_check();
