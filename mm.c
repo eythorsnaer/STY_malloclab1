@@ -159,20 +159,8 @@ int mm_init(void)
     heap_listp += DSIZE;    //points to prologue footer
     free_listp = heap_listp + DSIZE; // points to epilogue
     
-    //print  prologue and epilogue
-    /*
-    heap_listp += WSIZE;
-    printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
-	   (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
-	   GET_SIZE(heap_listp+WSIZE),
-	   (GET_ALLOC(heap_listp+WSIZE) ? 'a' : 'f'));
-    heap_listp += DSIZE;
-    printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
-	   (GET_ALLOC(heap_listp) ? 'a' : 'f'));
-    */
     printf("Check in init \n");
     mm_check();
-    exit(0);
   
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL) {
@@ -403,9 +391,6 @@ void *mm_realloc(void *ptr, size_t size)
      PUT(HDRP(bp), PACK(size, 0));         /* free block header */
      PUT(FTRP(bp), PACK(size, 0));         /* free block footer */
      PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1)); /* new epilogue header */
-     
-     printf("Check in extend_heap \n");
-     mm_check();
 
      insertblock(bp);
      
