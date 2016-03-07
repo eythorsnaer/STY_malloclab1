@@ -125,6 +125,7 @@ static void printblock(void *bp);
 static void checkblock(void *bp);
 static void removeblock(void *bp);
 static void insertblock(void *bp);
+static int mm_check();
 
 // just a small test, not the main heap checker :P
 void myheapcheck()
@@ -132,7 +133,7 @@ void myheapcheck()
     char *bp;
 
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-	myprintblock(bp);
+	printblock(bp);
 	checkblock(bp);
     } 
 }
@@ -147,10 +148,20 @@ int mm_init(void)
     if ((heap_listp = mem_sbrk(4*WSIZE)) == NULL) {
 	return -1;
     }
+    
+    PUT(heap_listp, 0);                        /* alignment padding */
 
-    heap_listp += DSIZE;
+    PUT(heap_listp+WSIZE, PACK(OVERHEAD, 1));  /* prologue header */
+    PUT(heap_listp + DSIZE, 0); //prev free block pointer
+    PUT(heap_listp + DSIZE+WSIZE, 0); //next free block pointer
+
+    PUT(heap_listp+DSIZE, PACK(OVERHEAD, 1));  /* prologue footer */
+
+    PUT(heap_listp+WSIZE+DSIZE, PACK(0, 1));   /* epilogue header */
+
+    heap_listp += DSIZE + WSIZE;
     printf("before extend\n");
-    myheapcheck();
+    mm_check();
     exit(0);
   
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
@@ -366,7 +377,34 @@ static void *find_fit(size_t asize)
 
   static void printblock(void *bp) 
   {
-    
+    size_t hsize, halloc, fsize, falloc;
+
+    hsize = GET_SIZE(HDRP(bp));
+    halloc = GET_ALLOC(HDRP(bp));
+    fsize = GET_SIZE(FTRP(bp));
+    falloc = GET_ALLOC(FTRP(bp));
+
+    if (hsize == 0) {
+      printf("%p: EOL\n", bp);
+      return;
+    }
+
+    if (GET_ALLOC(bp))
+      {
+	printf("%p: header: [%d:%c] footer: [%d:%c]\n", bp,
+	       hsize, (halloc ? 'a' : 'f'),
+	       fsize, (falloc ? 'a' : 'f'));
+      }
+    else
+      {
+	printf("%p: header: [%d:%c] prev: %p next: %p footer: [%d:%c]\n", bp,
+	       hsize, (halloc ? 'a' : 'f'),
+	       NEXT_FREEP(bp),
+	       PREV_FREEP(bp),
+	       fsize, (falloc ? 'a' : 'f'));
+      }
+ 
+
   }
 
 static void checkblock(void *bp) 
@@ -374,35 +412,35 @@ static void checkblock(void *bp)
   // are header and footer the same?
   if(GET(HDRP(bp)) != GET(FTRP(bp))) 
     {
-      printf("CHECKBLOCK ERROR: header and footer do not match!");
+      printf("CHECKBLOCK ERROR: header and footer do not match! \n");
     }
 
   // is the alignment divisible by 8?
   if((size_t)bp % 8)
     {
-      printf("CHECKBLOCK ERROR: bp is not divisible by 8!");
+      printf("CHECKBLOCK ERROR: bp is not divisible by 8! \n");
     }
 
   // is every block within boundries?
   if(bp < mem_heap_lo() || bp > mem_heap_hi())
     {
-      printf("CHECKBLOCK ERROR: NEXT_FREEP(bp) is not on heap!");
+      printf("CHECKBLOCK ERROR: NEXT_FREEP(bp) is not on heap! \n");
     }
 
   // do the pointers point to vlaid addresses?
   if(NEXT_FREEP(bp) < mem_heap_lo() || NEXT_FREEP(bp) > mem_heap_hi())
     {
-      printf("CHECKBLOCK ERROR: NEXT_FREEP(bp) is not on heap!");
+      printf("CHECKBLOCK ERROR: NEXT_FREEP(bp) is not on heap! \n");
     }
   if(PREV_FREEP(bp) < mem_heap_lo() || PREV_FREEP(bp) > mem_heap_hi())
     {
-      printf("CHECKBLOCK ERROR: PREV_FREEP(bp) is not on heap!"); 
+      printf("CHECKBLOCK ERROR: PREV_FREEP(bp) is not on heap! \n"); 
     }
 
   // is header size from footer and footer size from header?
   if((bp + GET_SIZE(HDRP(bp))) != FTRP(bp) || (bp - GET_SIZE(FTRP(bp))) != HDRP(bp))
     {
-      printf("CHECKBLOCK ERROR: payload does not match size!");
+      printf("CHECKBLOCK ERROR: payload does not match size! \n");
     }
   
 }
