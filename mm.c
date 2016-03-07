@@ -272,6 +272,18 @@ void *mm_realloc(void *ptr, size_t size)
      }
    }
 
+   ptr = heap_listp;
+
+   // Check each block for errors
+
+   while(GET_SIZE(ptr) != 0)
+   {
+     checkblock(ptr);
+
+     ptr = NEXT_FREEP(ptr);
+   }
+
+
    return 0;
  }
 
@@ -321,10 +333,43 @@ static void *find_fit(size_t asize)
     
   }
 
-  static void checkblock(void *bp) 
-  {
-    
-  }
+static void checkblock(void *bp) 
+{
+  // are header and footer the same?
+  if(GET(HDRP(bp)) != GET(FTRP(bp))) 
+    {
+      printf("CHECKBLOCK ERROR: header and footer do not match!");
+    }
+
+  // is the alignment divisible by 8?
+  if((size_t)bp % 8)
+    {
+      printf("CHECKBLOCK ERROR: bp is not divisible by 8!");
+    }
+
+  // is every block within boundries?
+  if(bp < mem_heap_lo() || bp > mem_heap_hi())
+    {
+      printf("CHECKBLOCK ERROR: NEXT_FREEP(bp) is not on heap!");
+    }
+
+  // do the pointers point to vlaid addresses?
+  if(NEXT_FREEP(bp) < mem_heap_lo() || NEXT_FREEP(bp) > mem_heap_hi())
+    {
+      printf("CHECKBLOCK ERROR: NEXT_FREEP(bp) is not on heap!");
+    }
+  if(PREV_FREEP(bp) < mem_heap_lo() || PREV_FREEP(bp) > mem_heap_hi())
+    {
+      printf("CHECKBLOCK ERROR: PREV_FREEP(bp) is not on heap!"); 
+    }
+
+  // is header size from footer and footer size from header?
+  if((bp + GET_SIZE(HDRP(bp))) != FTRP(bp) || (bp - GET_SIZE(FTRP(bp))) != HDRP(bp))
+    {
+      printf("CHECKBLOCK ERROR: payload does not match size!");
+    }
+  
+}
 
 /*
  * remove - Removes a block from free list
