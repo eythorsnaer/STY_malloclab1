@@ -126,14 +126,50 @@ static void checkblock(void *bp);
 static void removeblock(void *bp);
 static void insertblock(void *bp);
 
+// just a small test, not the main heap checker :P
+void myheapcheck()
+{
+    char *bp;
+
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+	myprintblock(bp);
+	checkblock(bp);
+    } 
+}
+
 /* 
  * mm_init - Initialize the memory manager 
  */
 /* $begin mminit */
 int mm_init(void) 
 {
-  return 0;
+    /* create the initial empty heap */
+    if ((heap_listp = mem_sbrk(4*WSIZE)) == NULL) {
+	return -1;
+    }
+
+    heap_listp += DSIZE;
+    printf("before extend\n");
+    myheapcheck();
+    exit(0);
+  
+    /* Extend the empty heap with a free block of CHUNKSIZE bytes */
+    if (extend_heap(CHUNKSIZE/WSIZE) == NULL) {
+	return -1;
+    }
+    return 0;
 }
+/* $end mminit */
+
+
+/* 
+ * mm_init - Initialize the memory manager 
+ */
+/* $begin mminit */
+//int mm_init(void) 
+//{
+//return 0;
+//}
 /* $end mminit */
 
 /* 
