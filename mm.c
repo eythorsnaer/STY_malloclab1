@@ -156,10 +156,11 @@ int mm_init(void)
     PUT(heap_listp + DSIZE, PACK(OVERHEAD, 1));    /* prologue footer */
     PUT(heap_listp + WSIZE + OVERHEAD, PACK(0, 1));   /* epilogue header */
 
-    //heap_listp += DSIZE;    //points to prologue footer
-    //free_listp = heap_listp + DSIZE; // points to epilogue
+    heap_listp += DSIZE;    //points to prologue footer
+    free_listp = heap_listp + DSIZE; // points to epilogue
     
     //print  prologue and epilogue
+    /*
     heap_listp += WSIZE;
     printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
 	   (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
@@ -168,7 +169,7 @@ int mm_init(void)
     heap_listp += DSIZE;
     printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
 	   (GET_ALLOC(heap_listp) ? 'a' : 'f'));
-
+    */
     printf("Check in init \n");
     mm_check();
     exit(0);
