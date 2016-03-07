@@ -86,8 +86,8 @@ team_t team = {
 #define WSIZE       4       /* word size (bytes) */  
 #define DSIZE       8       /* doubleword size (bytes) */
 #define CHUNKSIZE  (1<<12)  /* initial heap size (bytes) */
-#define OVERHEAD    8       /* overhead of header, footer, next and prev pointers(bytes) */
-#define MIN_BSIZE   16 
+#define OVERHEAD    8       /* overhead of header and footer(bytes) */
+#define MIN_BSIZE   16      /* minimum size of block */
 
 #define MAX(x, y) ((x) > (y)? (x) : (y))  
 
@@ -153,11 +153,11 @@ int mm_init(void)
     
     PUT(heap_listp, 0);                            /* alignment padding */
     PUT(heap_listp + WSIZE, PACK(OVERHEAD, 1));    /* prologue header */
-    PUT(heap_listp + DSIZE + WSIZE, PACK(OVERHEAD, 1));    /* prologue footer */
-    PUT(heap_listp + 2*DSIZE + WSIZE, PACK(0, 1));   /* epilogue header */
+    PUT(heap_listp + OVERHEAD + WSIZE, PACK(OVERHEAD, 1));    /* prologue footer */
+    PUT(heap_listp + 2*OVERHEAD + WSIZE, PACK(0, 1));   /* epilogue header */
 
-    //heap_listp += WSIZE + DSIZE;
-    //free_listp = heap_listp + DSIZE;
+    //heap_listp += WSIZE + OVERHEAD;
+    //free_listp = heap_listp + OVERHEAD;
     
     //print  prologue and epilogue
     heap_listp += WSIZE;
