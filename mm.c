@@ -262,6 +262,8 @@ void *mm_realloc(void *ptr, size_t size)
    int firstLoop = 1;
 
    // Check if every block in free list is marked free
+
+   printf("Check if every block in free list is marked free \n");
    while(GET_SIZE(HDRP(ptr)) != 0)
    {
      if (GET_ALLOC(HDRP(ptr)) == 1)
@@ -278,6 +280,8 @@ void *mm_realloc(void *ptr, size_t size)
    ptr = free_listp;
 
    // Check if there are any free blocks side by side
+
+   printf("Check if there are any free blocks side by side \n");
    while(GET_SIZE(HDRP(ptr)) != 0)
    {
      if (GET_ALLOC(HDRP(ptr)) == 0)
@@ -300,7 +304,8 @@ void *mm_realloc(void *ptr, size_t size)
    ptr = free_listp;
 
    // Check if every free block is in the list
-   
+   printf("Check if every free block is in the list \n");
+
    while(GET_SIZE(HDRP(ptr)) != 0)
    {
      while(GET_SIZE(HDRP(ptr2)) != 0)
@@ -324,6 +329,7 @@ void *mm_realloc(void *ptr, size_t size)
    ptr2 = NEXT_FREEP(ptr);
 
    // Check if pointers in consecutive blocks point to each other
+   printf("Check if pointers in consecutive blocks point to each other \n");
    
    while(GET_SIZE(HDRP(ptr)) != 0 && GET_SIZE(HDRP(ptr2)) != 0)
    {
@@ -341,6 +347,7 @@ void *mm_realloc(void *ptr, size_t size)
    ptr2 = free_listp;
 
    // Check if there are cycles in the list
+  printf("Check if there are cycles in the list \n");
 
    while(GET_SIZE(HDRP(ptr)) != 0 && GET_SIZE(HDRP(ptr2)) != 0 && GET_SIZE(HDRP(NEXT_FREEP(ptr2))) != 0)
    {
@@ -362,6 +369,7 @@ void *mm_realloc(void *ptr, size_t size)
    ptr = free_listp;
 
    // Check each block for errors
+   printf("Check each block for errors \n");
 
    while(GET_SIZE(HDRP(ptr)) != 0)
    {
