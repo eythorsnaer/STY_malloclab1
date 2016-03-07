@@ -160,11 +160,11 @@ int mm_init(void)
     
     PUT(heap_listp + WSIZE + MIN_BSIZE, PACK(0, 1));   /* epilogue header */
 
-    //heap_listp += DSIZE;    //points behind prologue hdr
+    heap_listp += DSIZE;    //points behind prologue hdr
     free_listp = heap_listp; // points to epilogue
     
     //print  prologue and epilogue
-    
+    /*    
     heap_listp += WSIZE;
     printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
        (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
@@ -173,7 +173,7 @@ int mm_init(void)
     heap_listp += MIN_BSIZE;
     printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
        (GET_ALLOC(heap_listp) ? 'a' : 'f'));
-    
+    */
     printf("Check in init \n");
     mm_check();
     //exit(0);
