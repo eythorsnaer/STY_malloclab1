@@ -148,7 +148,8 @@ int mm_init(void)
     heap_listp += DSIZE;    //points behind prologue hdr                                    
     free_listp = heap_listp; // points to epilogue                                          
         
-    printf("prev free block: %p\n", heap_listp);
+    printf("heap_listp p: %p\n", heap_listp);
+    printf("heap_listp d: %d\n", heap_listp);
     printf("Check after init \n");
     mm_check();
     //exit(0);                                                                         
@@ -157,6 +158,10 @@ int mm_init(void)
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL) {
         return -1;
     }
+    printf("Check after init \n");
+    mm_check();
+    //exit(0);
+
     return 0;
 }
 /* $end mminit */
@@ -250,9 +255,21 @@ void *mm_realloc(void *ptr, size_t size)
    int lastWasFree = 0;
    int firstLoop = 1;
 
+  // Check each block for errors
+   printf("Check each block for errors \n");
+
+   while(ptr != 0)
+   {
+     checkblock(ptr);
+
+     ptr = NEXT_FREEP(ptr);
+   }
+
+   ptr = free_listp;
+
    // Check if every block in free list is marked free
    printf("Check if every block in free list is marked free \n");
-   while(GET_SIZE(HDRP(ptr)) != 0)
+   while(ptr != 0)
    {
      if (GET_ALLOC(HDRP(ptr)) == 1)
      {
@@ -270,13 +287,13 @@ void *mm_realloc(void *ptr, size_t size)
    // Check if there are any free blocks side by side
 
    printf("Check if there are any free blocks side by side \n");
-   while(GET_SIZE(HDRP(ptr)) != 0)
+   while(ptr != 0)
    {
      if (GET_ALLOC(HDRP(ptr)) == 0)
      {
        if (lastWasFree)
 	 {
-	   printf("ERROR: Two free blcoks side by side!\n");
+	   printf("ERROR: Two free blocks side by side!\n");
 	   return -1;
 	 }
        lastWasFree = 1;
@@ -294,9 +311,9 @@ void *mm_realloc(void *ptr, size_t size)
    // Check if every free block is in the list
    printf("Check if every free block is in the list \n");
 
-   while(GET_SIZE(HDRP(ptr)) != 0)
+   while(ptr != 0)
    {
-       while(GET_SIZE(HDRP(ptr2)) != 0)
+     while(ptr2 != 0)
      {
 	 if (GET_ALLOC(HDRP(ptr2)) == 0)
        {
@@ -319,7 +336,7 @@ void *mm_realloc(void *ptr, size_t size)
    // Check if pointers in consecutive blocks point to each other
    printf("Check if pointers in consecutive blocks point to each other \n");
    
-   while(GET_SIZE(HDRP(ptr)) != 0 && GET_SIZE(HDRP(ptr2)) != 0)
+   while(ptr != 0 && ptr2 != 0)
    {
      if (NEXT_FREEP(ptr) != ptr2 || PREV_FREEP(ptr2) != ptr)
      {
@@ -337,7 +354,7 @@ void *mm_realloc(void *ptr, size_t size)
    // Check if there are cycles in the list
   printf("Check if there are cycles in the list \n");
 
-   while(GET_SIZE(HDRP(ptr)) != 0 && GET_SIZE(HDRP(ptr2)) != 0 && GET_SIZE(HDRP(NEXT_FREEP(ptr2))) != 0)
+   while(ptr != 0 && ptr2 != 0 && NEXT_FREEP(ptr2) != 0)
    {
      if (!firstLoop && ptr == ptr2)
      {
@@ -353,19 +370,6 @@ void *mm_realloc(void *ptr, size_t size)
        firstLoop = 0;
      }
    }
-
-   ptr = free_listp;
-
-   // Check each block for errors
-   printf("Check each block for errors \n");
-
-   while(GET_SIZE(HDRP(ptr)) != 0)
-   {
-     checkblock(ptr);
-
-     ptr = NEXT_FREEP(ptr);
-   }
-
 
    return 0;
  }
@@ -384,8 +388,8 @@ void *mm_realloc(void *ptr, size_t size)
      /* Allocate an even number of words to maintain alignment */
      size = (words % 2) ? (words+1) * WSIZE : words * WSIZE;
      //round up so we have space for header and footer
-     if (size < OVERHEAD)
-	 size = OVERHEAD;
+     if (size < MIN_BSIZE)
+	 size = MIN_BSIZE;
      //extend heap 
      if ((long)(bp = mem_sbrk(size)) == -1) 
 	 return NULL;
