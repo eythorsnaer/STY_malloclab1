@@ -557,7 +557,14 @@ static void checkblock(void *bp)
 
   static void removeblock(void *bp)
   {
-   
+    if(PREV_FREEP(bp)) {
+      /*block is between blocks*/
+      NEXT_FREEP(PREV_FREEP(bp)) = NEXT_FREEP(bp);
+    } else {
+      /*block is first in free list*/
+      free_listp = NEXT_FREEP(bp);
+    }
+    PREV_FREEP(NEXT_FREEP(bp)) = PREV_FREEP(bp);
   }
  
 /*
