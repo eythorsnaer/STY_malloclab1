@@ -162,7 +162,7 @@ int mm_init(void)
     heap_listp += DSIZE + WSIZE;
     printf("before extend\n");
     mm_check();
-    exit(0);
+    //exit(0);
   
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL) {
@@ -342,7 +342,26 @@ void *mm_realloc(void *ptr, size_t size)
  /* $begin mmextendheap */
  static void *extend_heap(size_t words) 
  {
-   return NULL;
+     char *bp;
+     size_t size;
+
+     /* Allocate an even number of words to maintain alignment */
+     size = (words % 2) ? (words+1) * WSIZE : words * WSIZE;
+     //round up so we have sapce for header and footer
+     if (size < OVERHEAD)
+	 size = OVERHEAD;
+     //extend heap 
+     if ((long)(bp = mem_sbrk(size)) == -1) 
+	 return NULL;
+
+     /* Initialize free block header/footer and the epilogue header */
+     PUT(HDRP(bp), PACK(size, 0));         /* free block header */
+     PUT(FTRP(bp), PACK(size, 0));         /* free block footer */
+     PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1)); /* new epilogue header */
+
+     /* Coalesce if the previous block was free and add the block to 
+      * the free list */
+     return bp;
  }
 /* $end mmextendheap */
 
