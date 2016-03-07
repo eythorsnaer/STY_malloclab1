@@ -330,7 +330,33 @@ static void *find_fit(size_t asize)
 
   static void printblock(void *bp) 
   {
-    
+    size_t hsize, halloc, fsize, falloc;
+
+    hsize = GET_SIZE(HDRP(bp));
+    halloc = GET_ALLOC(HDRP(bp));
+    fsize = GET_SIZE(FTRP(bp));
+    falloc = GET_ALLOC(FTRP(bp));
+
+    if (hsize == 0) {
+      printf("%p: EOL\n", bp);
+      return;
+    }
+
+    if (GET_ALLOC(bp))
+      {
+	printf("%p: header: [%d:%c] footer: [%d:%c]\n", bp,
+	       hsize, (halloc ? 'a' : 'f'),
+	       fsize, (falloc ? 'a' : 'f'));
+      }
+    else
+      {
+	printf("%p: header: [%d:%c] prev: %p next: %p footer: [%d:%c]\n", bp,
+	       hsize, (halloc ? 'a' : 'f'),
+	       NEXT_FREEP(bp),
+	       PREV_FREEP(bp),
+	       fsize, (falloc ? 'a' : 'f'));
+      }
+
   }
 
 static void checkblock(void *bp) 
