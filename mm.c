@@ -86,7 +86,7 @@ team_t team = {
 #define WSIZE       4       /* word size (bytes) */  
 #define DSIZE       8       /* doubleword size (bytes) */
 #define CHUNKSIZE  (1<<12)  /* initial heap size (bytes) */
-#define OVERHEAD    16       /* overhead of header and footer + next and prev pointers(bytes) */
+#define OVERHEAD    8       /* overhead of header and footer(bytes) */
 #define MIN_BSIZE   16      /* minimum size of block */
 
 #define MAX(x, y) ((x) > (y)? (x) : (y))  
@@ -152,15 +152,15 @@ int mm_init(void)
     }
     
     PUT(heap_listp, 0);                            /* alignment padding */
-    PUT(heap_listp + WSIZE, PACK(OVERHEAD, 1));    /* prologue header */
+    PUT(heap_listp + WSIZE, PACK(MIN_BSIZE, 1));    /* prologue header */
     
     PUT(heap_listp + DSIZE, 0); //prev free block pointer
     PUT(heap_listp + DSIZE + WSIZE, 0); //next free block pointer
     
-    PUT(heap_listp + 2*DSIZE, PACK(OVERHEAD, 1));    /* prologue footer */
-    PUT(heap_listp + WSIZE + OVERHEAD, PACK(0, 1));   /* epilogue header */
+    PUT(heap_listp + 2*DSIZE, PACK(MIN_BSIZE, 1));    /* prologue footer */
+    PUT(heap_listp + WSIZE + MIN_BSIZE, PACK(0, 1));   /* epilogue header */
 
-    heap_listp += 2*DSIZE;    //points to prologue footer
+    heap_listp += MIN_BSIZE;    //points to prologue footer
     free_listp = heap_listp; // points to epilogue
     
     //print  prologue and epilogue
