@@ -171,6 +171,107 @@ void *mm_realloc(void *ptr, size_t size)
  */
  int mm_check(void) 
  {
+   void *ptr = heap_listp;
+   void *ptr2 = heap_listp;
+   int lastWasFree = 0;
+   int firstLoop = 1;
+
+   // Check if every block in free list is marked free
+   while(GET_SIZE(ptr) != 0)
+   {
+     if (GET_ALLOC(ptr) == 1)
+     {
+       printf("ERROR: allocated block in freelist!");
+       return -1;
+     }
+
+     ptr = NEXT_FREEP(ptr);
+   }
+   
+   ptr = heap_listp;
+
+   // Check if there are any free blocks side by side
+   while(GET_SIZE(ptr) != 0)
+   {
+     if (GET_ALLOC(ptr) == 0)
+     {
+       if (lastWasFree)
+	 {
+	   printf("ERROR: Two free blcoks side by side!");
+	   return -1;
+	 }
+       lastWasFree = 1;
+     }
+     else
+     {
+       lastWasFree = 0;
+     }
+
+     ptr = NEXT_BLKP(ptr);
+   }
+   
+   ptr = heap_listp;
+
+   // Check if every free block is in the list
+   
+   while(GET_SIZE(ptr) != 0)
+   {
+     while(GET_SIZE(ptr2) != 0)
+     {
+       if (GET_ALLOC(ptr2) == 0)
+       {
+	 if (ptr != ptr2)
+	 {
+	   printf("ERROR: Found free block that is not in freelist!");
+	   return 1;
+	 }
+       }
+       
+       ptr2 = NEXT_BLKP(ptr);
+     }
+
+     ptr = NEXT_FREEP(ptr);
+   }
+
+   ptr = heap_listp;
+   ptr2 = NEXT_FREEP(ptr);
+
+   // Check if pointers in consecutive blocks point to each other
+   
+   while(GET_SIZE(ptr) != 0 && GET_SIZE(ptr2) != 0)
+   {
+     if (NEXT_FREEP(ptr) != ptr2 || PREV_FREEP(ptr2) != ptr)
+     {
+       printf("ERROR: Pointers in consecutive blocks don't point to each other!");
+       return 1;
+     }
+
+     ptr = NEXT_FREEP(ptr);
+     ptr2 = NEXT_FREEP(ptr);
+   }
+     
+   ptr = heap_listp;
+   ptr2 = heap_listp;
+
+   // Check if there are cycles in the list
+
+   while(GET_SIZE(ptr) != 0 && GET_SIZE(ptr2) != 0 && GET_SIZE(NEXT_FREEP(ptr2)) != 0)
+   {
+     if (!firstLoop && ptr == ptr2)
+     {
+       printf("ERROR: There is a cycle in the list!");
+       return 1;
+     }
+       
+     ptr = NEXT_FREEP(ptr);
+     ptr2 = NEXT_FREEP(NEXT_FREEP(ptr));
+
+     if (firstLoop)
+     {
+       firstLoop = 0;
+     }
+   }
+
    return 0;
  }
 
