@@ -554,10 +554,10 @@ static void checkblock(void *bp)
 
   static void insertblock(void *bp)
   {
-    NEXT_FREEP(bp) = heap_listp;
-    PREV_FREEP(heap_listp) = bp;
+    NEXT_FREEP(bp) = free_listp;
+    PREV_FREEP(free_listp) = bp;
     PREV_FREEP(bp) = 0;
-    heap_listp = bp;
+    free_listp = bp;
 
     printf("Check in insertblock \n");
     mm_check();
