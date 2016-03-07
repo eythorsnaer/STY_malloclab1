@@ -153,23 +153,21 @@ int mm_init(void)
     
     PUT(heap_listp, 0);                            /* alignment padding */
     PUT(heap_listp + WSIZE, PACK(OVERHEAD, 1));    /* prologue header */
-    PUT(heap_listp + OVERHEAD + WSIZE, PACK(OVERHEAD, 1));    /* prologue footer */
-    PUT(heap_listp + 2*OVERHEAD + WSIZE, PACK(0, 1));   /* epilogue header */
+    PUT(heap_listp + DSIZE, PACK(OVERHEAD, 1));    /* prologue footer */
+    PUT(heap_listp + WSIZE + OVERHEAD, PACK(0, 1));   /* epilogue header */
 
-    heap_listp += WSIZE + OVERHEAD;
-    free_listp = heap_listp + OVERHEAD;
+    //heap_listp += DSIZE;    //points to prologue footer
+    //free_listp = heap_listp + DSIZE; // points to epilogue
     
     //print  prologue and epilogue
-    /*
     heap_listp += WSIZE;
     printf("prologue: header: [%d:%c] footer:[%d:%c]\n", GET_SIZE(heap_listp),
 	   (GET_ALLOC(heap_listp) ? 'a' : 'f'), 
-	   GET_SIZE(heap_listp+DSIZE),
-	   (GET_ALLOC(heap_listp+DSIZE) ? 'a' : 'f'));
-    heap_listp += 2*DSIZE;
+	   GET_SIZE(heap_listp+WSIZE),
+	   (GET_ALLOC(heap_listp+WSIZE) ? 'a' : 'f'));
+    heap_listp += DSIZE;
     printf("epilogue: [%d:%c]\n", GET_SIZE(heap_listp),
 	   (GET_ALLOC(heap_listp) ? 'a' : 'f'));
-    */
 
     printf("Check in init \n");
     mm_check();
